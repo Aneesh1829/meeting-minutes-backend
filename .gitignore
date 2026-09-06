@@ -1,0 +1,17 @@
+# Environment variables and secrets
+.env
+
+# Python virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temp audio files created during processing
+temp_*
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/

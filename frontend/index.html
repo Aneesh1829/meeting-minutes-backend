@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minutes — Meeting Records</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ledger: #1B2333;
+    --ledger-dark: #131A27;
+    --paper: #EFEAD8;
+    --paper-line: #DCD5BE;
+    --ink: #2A3B4C;
+    --ink-soft: #5B6B7A;
+    --brass: #B08D3E;
+    --brass-dark: #8C6F30;
+    --rust: #A6432D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--ledger);
+    background-image: radial-gradient(circle at 20% 10%, var(--ledger-dark), var(--ledger) 60%);
+    font-family: 'Public Sans', sans-serif;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .book {
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .mark {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    color: var(--paper);
+  }
+
+  .mark svg { flex-shrink: 0; }
+
+  .mark h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 600;
+    font-size: 1.55rem;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+
+  .mark p {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    color: #9AA6B2;
+  }
+
+  .page {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    padding: 40px;
+  }
+
+  #dropzone {
+    border: 1.5px dashed #B7AE8F;
+    padding: 44px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  #dropzone:hover, #dropzone.dragover {
+    border-color: var(--brass-dark);
+    background: rgba(176, 141, 62, 0.06);
+  }
+
+  #dropzone svg { margin-bottom: 14px; }
+
+  #dropzone .primary {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.15rem;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+
+  #dropzone .secondary {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  #progressArea { display: none; margin-top: 28px; }
+
+  .progress-label {
+    font-size: 0.92rem;
+    color: var(--ink);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  .ink-track {
+    height: 3px;
+    background: var(--paper-line);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ink-fill {
+    position: absolute;
+    left: -40%;
+    top: 0;
+    height: 100%;
+    width: 40%;
+    background: var(--brass);
+    animation: writing 1.4s ease-in-out infinite;
+  }
+
+  @keyframes writing {
+    0%   { left: -40%; }
+    100% { left: 100%; }
+  }
+
+  #errorArea {
+    display: none;
+    margin-top: 20px;
+    padding: 14px 16px;
+    border-left: 3px solid var(--rust);
+    background: rgba(166, 67, 45, 0.07);
+    color: var(--rust);
+    font-size: 0.9rem;
+  }
+
+  #resultArea { display: none; margin-top: 32px; }
+
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Source Serif 4', serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--brass-dark);
+    border: 1px solid var(--brass);
+    padding: 3px 12px;
+    margin-bottom: 20px;
+    transform: rotate(-1.5deg);
+  }
+
+  .minutes-doc {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--ink);
+    border-top: 1px solid var(--paper-line);
+    padding-top: 20px;
+  }
+
+  .minutes-doc h1, .minutes-doc h2, .minutes-doc h3 {
+    font-family: 'Source Serif 4', serif;
+    color: var(--ink);
+    margin: 1.3em 0 0.5em;
+  }
+  .minutes-doc h1 { font-size: 1.4rem; }
+  .minutes-doc h2 { font-size: 1.2rem; }
+  .minutes-doc h3 { font-size: 1.05rem; }
+  .minutes-doc li { margin-bottom: 0.35em; }
+  .minutes-doc strong { color: var(--ink); }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'Public Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 11px 20px;
+    background: var(--ink);
+    color: var(--paper);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .btn:hover { background: var(--ledger-dark); }
+
+  .btn.secondary {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink-soft);
+  }
+
+  .btn.secondary:hover { background: rgba(42, 59, 76, 0.06); }
+
+  footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.78rem;
+    color: #7C8794;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ink-fill { animation: none; left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="book">
+  <div class="mark">
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="16" stroke="#B08D3E" stroke-width="1.4"/>
+      <path d="M10 14.5C12 12 15.5 11 17 13.5C18.5 11 22 12 24 14.5C24 19 17 24 17 24C17 24 10 19 10 14.5Z" stroke="#B08D3E" stroke-width="1.2" fill="none"/>
+    </svg>
+    <div>
+      <h1>Minutes</h1>
+      <p>Turn a recording into a finished record</p>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <div id="dropzone">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <path d="M18 4V22M18 22L12 16M18 22L24 16" stroke="#8A7F5E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 26V29C6 30.1 6.9 31 8 31H28C29.1 31 30 30.1 30 29V26" stroke="#8A7F5E" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <p class="primary">Choose a recording</p>
+      <p class="secondary">or drag one here — any common audio format</p>
+      <input type="file" id="fileInput" accept="audio/*" style="display:none">
+    </div>
+
+    <div id="progressArea">
+      <div class="progress-label" id="progressLabel">Listening to your meeting…</div>
+      <div class="ink-track"><div class="ink-fill"></div></div>
+    </div>
+
+    <div id="errorArea"></div>
+
+    <div id="resultArea">
+      <div class="stamp">◆ Finalized</div>
+      <div class="minutes-doc" id="minutesContent"></div>
+      <div class="actions">
+        <a class="btn" id="downloadPdf" href="#" target="_blank">Download as PDF</a>
+        <a class="btn secondary" id="downloadDocx" href="#" target="_blank">Download as Word</a>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Nothing is stored beyond your account's records.</footer>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+const progressArea = document.getElementById("progressArea");
+const progressLabel = document.getElementById("progressLabel");
+const errorArea = document.getElementById("errorArea");
+const resultArea = document.getElementById("resultArea");
+const minutesContent = document.getElementById("minutesContent");
+const downloadPdf = document.getElementById("downloadPdf");
+const downloadDocx = document.getElementById("downloadDocx");
+
+dropzone.addEventListener("click", () => fileInput.click());
+dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("dragover");
+  if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => {
+  if (fileInput.files.length) uploadFile(fileInput.files[0]);
+});
+
+const MIN_VISIBLE_MS = 1400; // keep the progress state on screen long enough to actually see it
+
+async function uploadFile(file) {
+  resultArea.style.display = "none";
+  errorArea.style.display = "none";
+  dropzone.style.display = "none";
+  progressArea.style.display = "block";
+  progressLabel.textContent = "Sending your recording…";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch(`${API_BASE}/meetings`, { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (!data.meeting_id) {
+      showError("The upload didn't go through. Check that the backend is running and try again.");
+      return;
+    }
+
+    progressLabel.textContent = "Listening to your meeting…";
+    setTimeout(() => {
+      if (progressArea.style.display === "block") {
+        progressLabel.textContent = "Drafting the minutes…";
+      }
+    }, 8000);
+
+    pollStatus(data.meeting_id, Date.now());
+
+  } catch (err) {
+    showError("Couldn't reach the server: " + err.message);
+  }
+}
+
+function pollStatus(meetingId, startedAt) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/meetings/${meetingId}`);
+      const data = await res.json();
+
+      if (data.status === "done") {
+        clearInterval(interval);
+        finishWithDelay(startedAt, () => showResult(meetingId, data.minutes));
+      } else if (data.status === "failed") {
+        clearInterval(interval);
+        finishWithDelay(startedAt, () => showError("Something went wrong while drafting the minutes. Check the backend terminal for details."));
+      }
+    } catch (err) {
+      clearInterval(interval);
+      finishWithDelay(startedAt, () => showError("Lost connection while checking progress: " + err.message));
+    }
+  }, 1500);
+}
+
+// Ensures the progress state stays visible for at least MIN_VISIBLE_MS,
+// so fast results don't just flash past unnoticed.
+function finishWithDelay(startedAt, callback) {
+  const elapsed = Date.now() - startedAt;
+  const remaining = Math.max(0, MIN_VISIBLE_MS - elapsed);
+  setTimeout(() => {
+    progressArea.style.display = "none";
+    callback();
+  }, remaining);
+}
+
+function showError(message) {
+  progressArea.style.display = "none";
+  dropzone.style.display = "block";
+  errorArea.textContent = message;
+  errorArea.style.display = "block";
+}
+
+function showResult(meetingId, minutesMarkdown) {
+  resultArea.style.display = "block";
+  minutesContent.innerHTML = renderMarkdown(minutesMarkdown);
+  downloadPdf.href = `${API_BASE}/meetings/${meetingId}/download/pdf`;
+  downloadDocx.href = `${API_BASE}/meetings/${meetingId}/download/docx`;
+}
+
+function renderMarkdown(text) {
+  let html = text
+    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+    .replace(/\*\*(.*?)\*\*/gim, "<strong>$1</strong>")
+    .replace(/^\s*[-*] (.*$)/gim, "<li>$1</li>");
+
+  html = html.replace(/(<li>.*<\/li>\n?)+/gim, (match) => `<ul>${match}</ul>`);
+  html = html.split("\n").map(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<li")) return line;
+    return `<p>${line}</p>`;
+  }).join("\n");
+
+  return html;
+}
+</script>
+
+</body>
+</html>
